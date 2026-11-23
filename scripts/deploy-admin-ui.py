@@ -52,10 +52,22 @@ def stage(repo, revision, release, host):
         if not os.access(runtime / "bin" / binary, os.X_OK):
             raise ValueError(f"Missing runtime executable: {binary}")
 
-    subprocess.run([sys.executable, "-B", "-m", "unittest", "discover", "-s", "tests"],
-                   cwd=release, check=True)
-    subprocess.run(["node", "--check", "dist/app.js"], cwd=release, check=True)
-    for file in ("server.py", "start-read-backend.py", "model_providers.py"):
+    python_files = ["server.py", "start-read-backend.py"]
+    if (release / "package.json").is_file():
+        bun = str(runtime / "bin/bun")
+        env = {**os.environ, "PATH": str(runtime / "bin") + os.pathsep + os.environ.get("PATH", os.defpath)}
+        install = [bun, "install", "--frozen-lockfile", "--ignore-scripts"]
+        for command in (install, [bun, "run", "typecheck"], [bun, "test"], [bun, "run", "build"]):
+            subprocess.run(command, cwd=release, env=env, check=True)
+        shutil.rmtree(release / "node_modules")
+        subprocess.run([*install, "--production"], cwd=release, env=env, check=True)
+    else:
+        # Older pins already contain a built dashboard and the Python implementation.
+        subprocess.run([sys.executable, "-B", "-m", "unittest", "discover", "-s", "tests"],
+                       cwd=release, check=True)
+        subprocess.run(["node", "--check", "dist/app.js"], cwd=release, check=True)
+        python_files.append("model_providers.py")
+    for file in python_files:
         compile((release / file).read_bytes(), file, "exec")
     for file in ASSETS.values():
         if not (release / "dist" / file).stat().st_size:

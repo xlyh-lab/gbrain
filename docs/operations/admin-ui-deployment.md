@@ -6,9 +6,12 @@ Git commit in `scripts/admin-ui-revision` in this repository. Review the pin
 change on `master` before running the deployment on the Mac that hosts it.
 
 The host needs the existing GBrain runtime and launchd jobs, a local checkout
-of the dashboard source with read access to `origin`, Python 3.11 with the
-tarfile data filter available, and Node.js. The Git credential for the source
-checkout is provided by the host's credential helper.
+of the dashboard source with read access to `origin`, and Python 3.11 with the
+tarfile data filter available. The Git credential for the source checkout is
+provided by the host's credential helper. The deploy script uses the installed
+Bun runtime and the pinned dependency lockfile to check and build TypeScript
+releases. Older dashboard pins with prebuilt JavaScript use Node.js for their
+syntax check.
 
 Run the preflight from the GBrain deployment checkout:
 
